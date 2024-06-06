@@ -1,6 +1,6 @@
 # CTFd Chat Notifier
 
-A small CTFd plugin to send notifications to Slack, Discord or Telegram about solves and admin announcements. Can be easily extended to support other platforms.
+A small CTFd plugin to send notifications to Discord about solves and admin announcements. Can be easily extended to support other platforms.
 
 ![Configuration screenshot](screenshot.png)
 
