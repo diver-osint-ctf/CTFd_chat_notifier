@@ -46,12 +46,24 @@ class DiscordNotifier(BaseNotifier):
         return bool(self.get_webhook_url())
 
     def notify_solve(
-        self, format, solver_name, solver_url, challenge_name, challenge_url, solve_num
+        self,
+        format,
+        user_name,
+        user_url,
+        is_team_mode,
+        team_name,
+        team_url,
+        challenge_name,
+        challenge_url,
+        solve_num,
     ):
+        solver_msg = ""
+        if is_team_mode:
+            solver_msg = f"[{user_name}]({user_url}) ([{team_name}]({team_url}))"
+        else:
+            solver_msg = f"[{user_name}]({user_url})"
         markdown_msg = format.format(
-            solver="[{solver_name}]({solver_url})".format(
-                solver_name=solver_name, solver_url=solver_url
-            ),
+            solver=solver_msg,
             challenge="[{challenge_name}]({challenge_url})".format(
                 challenge_name=challenge_name, challenge_url=challenge_url
             ),
@@ -167,7 +179,7 @@ def load(app):
                 supported_notifier_settings[k] = Markup(
                     render_template(
                         "chat_notifier/admin_notifier_settings/{}.html".format(k),
-                        **context
+                        **context,
                     )
                 )
             context["supported_notifier_settings"] = supported_notifier_settings
@@ -182,16 +194,20 @@ def load(app):
 
             notifier = get_configured_notifier()
             if notifier and bool(get_config("notifier_send_solves")):
-                if get_mode_as_word() == TEAMS_MODE:
-                    solver = team
-                    solver_url = url_for(
-                        "teams.public", team_id=solver.account_id, _external=True
-                    )
-                else:
-                    solver = user
-                    solver_url = url_for(
-                        "users.public", user_id=solver.account_id, _external=True
-                    )
+                # TODO: This is a setting for the Japanese env
+                is_teams_mode = (
+                    get_mode_as_word() == TEAMS_MODE or get_mode_as_word() == "チーム"
+                )
+
+                user_name = user.name
+                user_url = url_for("users.public", user_id=user.id, _external=True)
+                team_name = team.name if is_teams_mode else None
+                team_url = (
+                    url_for("teams.public", team_id=team.id, _external=True)
+                    if is_teams_mode
+                    else None
+                )
+
                 challenge_url = url_for(
                     "challenges.listing",
                     _external=True,
@@ -218,8 +234,11 @@ def load(app):
                             "notifier_solve_msg",
                             "{solver} solved {challenge} ({solve_num} solve)",
                         ),
-                        solver.name,
-                        solver_url,
+                        user_name,
+                        user_url,
+                        is_teams_mode,
+                        team_name,
+                        team_url,
                         challenge.name,
                         challenge_url,
                         solve_count,
