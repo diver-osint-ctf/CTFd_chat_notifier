@@ -17,6 +17,9 @@ from flask import (
 )
 from functools import wraps
 import requests
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class BaseNotifier(object):
@@ -264,3 +267,96 @@ def load(app):
         return wrapper
 
     app.events_manager.publish = event_publish_decorator(app.events_manager.publish)
+
+    def geo_chal_solve_decorator(geo_solve_func):
+        @wraps(geo_solve_func)
+        def wrapper(cls, user, team, challenge, request):
+            # geo_challengeの元のsolve処理を実行
+            geo_solve_func(cls, user, team, challenge, request)
+
+            # 通知処理
+            notifier = get_configured_notifier()
+            if notifier and bool(get_config("notifier_send_solves")):
+                try:
+                    logger.info(f"Processing geo challenge notification: {challenge.name}")
+                    
+                    # TODO: This is a setting for the Japanese env
+                    is_teams_mode = (
+                        get_mode_as_word() == TEAMS_MODE or get_mode_as_word() == "チーム"
+                    )
+
+                    user_name = user.name
+                    user_url = url_for("users.public", user_id=user.id, _external=True)
+                    team_name = team.name if is_teams_mode else None
+                    team_url = (
+                        url_for("teams.public", team_id=team.id, _external=True)
+                        if is_teams_mode
+                        else None
+                    )
+
+                    challenge_url = url_for(
+                        "challenges.listing",
+                        _external=True,
+                        _anchor="{challenge.name}-{challenge.id}".format(
+                            challenge=challenge
+                        ),
+                    )
+
+                    Model = get_model()
+                    solve_count = (
+                        db.session.query(db.func.count(Solves.id))
+                        .filter(Solves.challenge_id == challenge.id)
+                        .join(Model, Solves.account_id == Model.id)
+                        .filter(Model.banned == False, Model.hidden == False)
+                        .scalar()
+                    )
+
+                    max_solves = get_config("notifier_solve_count")
+                    max_solves = int(max_solves) if max_solves is not None else None
+
+                    logger.info(f"Geo challenge solve count: {solve_count}, max_solves: {max_solves}")
+
+                    if max_solves is None or solve_count <= max_solves:
+                        logger.info(f"Sending geo challenge notification: {challenge.name}")
+                        notifier.notify_solve(
+                            get_config(
+                                "notifier_solve_msg",
+                                "{solver} solved {challenge} ({solve_num} solve)",
+                            ),
+                            user_name,
+                            user_url,
+                            is_teams_mode,
+                            team_name,
+                            team_url,
+                            challenge.name,
+                            challenge_url,
+                            solve_count,
+                        )
+                        logger.info(f"Geo challenge notification sent: {challenge.name}")
+                    else:
+                        logger.info(f"Geo challenge notification skipped due to solve count limit: {challenge.name}")
+                except Exception as e:
+                    logger.error(f"Error in geo challenge notification: {str(e)}")
+
+        return wrapper
+
+    def apply_geo_decorator():
+        try:
+            from CTFd.plugins.challenges import CHALLENGE_CLASSES
+            if "geo" in CHALLENGE_CLASSES:
+                geo_challenge_class = CHALLENGE_CLASSES["geo"]
+                # 元のsolveメソッドを取得してデコレータを適用
+                original_solve = geo_challenge_class.solve.__func__
+                decorated_solve = geo_chal_solve_decorator(original_solve)
+                geo_challenge_class.solve = classmethod(decorated_solve)
+                logger.info("Geo challenge decorator applied successfully")
+            else:
+                BaseChallenge.solve = chal_solve_decorator(BaseChallenge.solve)
+                logger.info("Geo challenge type not found in CHALLENGE_CLASSES")
+        except Exception as e:
+            logger.info(f"Error applying geo challenge decorator: {str(e)}")
+
+    # アプリケーションの初期化後にデコレータを適用
+    @app.before_first_request
+    def setup_geo_decorator():
+        apply_geo_decorator()
