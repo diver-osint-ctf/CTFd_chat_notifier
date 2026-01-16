@@ -249,8 +249,6 @@ def load(app):
 
         return wrapper
 
-    BaseChallenge.solve = chal_solve_decorator(BaseChallenge.solve)
-
     def event_publish_decorator(event_publish_func):
         @wraps(event_publish_func)
         def wrapper(*args, **kwargs):
@@ -340,28 +338,22 @@ def load(app):
 
         return wrapper
 
-    def apply_geo_decorator():
+    def apply_decorators():
+        BaseChallenge.solve = chal_solve_decorator(BaseChallenge.solve)
         try:
             from CTFd.plugins.challenges import CHALLENGE_CLASSES
             if "geo" in CHALLENGE_CLASSES:
                 geo_challenge_class = CHALLENGE_CLASSES["geo"]
-                # geoチャレンジが独自のsolveメソッドを持っているかチェック
                 if geo_challenge_class.solve is not BaseChallenge.solve:
-                    # 独自のsolveメソッドを持つ場合のみデコレート
                     original_solve = geo_challenge_class.solve.__func__
                     decorated_solve = geo_chal_solve_decorator(original_solve)
                     geo_challenge_class.solve = classmethod(decorated_solve)
                     logger.info("Geo challenge decorator applied successfully")
-                else:
-                    # BaseChallenge.solveを使用している場合は既に252行目でデコレート済み
-                    logger.info("Geo challenge uses BaseChallenge.solve (already decorated at line 252)")
             else:
-                # BaseChallenge.solveは既に252行目でデコレート済みのため、ここでは何もしない
                 logger.info("Geo challenge type not found in CHALLENGE_CLASSES, using base decorator")
         except Exception as e:
-            logger.info(f"Error applying geo challenge decorator: {str(e)}")
+            logger.info(f"Error applying challenge decorators: {str(e)}")
 
-    # アプリケーションの初期化後にデコレータを適用
     @app.before_first_request
-    def setup_geo_decorator():
-        apply_geo_decorator()
+    def setup_decorators():
+        apply_decorators()
