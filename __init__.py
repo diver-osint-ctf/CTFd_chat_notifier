@@ -252,7 +252,7 @@ def load(app):
     def event_publish_decorator(event_publish_func):
         @wraps(event_publish_func)
         def wrapper(*args, **kwargs):
-            event_publish_func(args, kwargs)
+            event_publish_func(*args, **kwargs)
 
             if kwargs["type"] == "notification":
                 notifier = get_configured_notifier()
