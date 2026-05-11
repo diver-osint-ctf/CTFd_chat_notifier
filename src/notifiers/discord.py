@@ -1,5 +1,4 @@
 import requests
-
 from CTFd.utils import get_config
 from CTFd.utils.humanize.numbers import ordinalize
 

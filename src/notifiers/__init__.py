@@ -3,6 +3,14 @@ from CTFd.utils import get_config
 from .base import BaseNotifier
 from .discord import DiscordNotifier
 
+__all__ = [
+    "NOTIFIER_CLASSES",
+    "BaseNotifier",
+    "DiscordNotifier",
+    "get_all_notifier_settings",
+    "get_configured_notifier",
+]
+
 # Global dictionary used to hold all the supported chat services. To add support
 # for a new chat service, create a plugin and insert your BaseNotifier subclass
 # instance into this dictionary to register it.
@@ -21,11 +29,9 @@ def get_configured_notifier():
 
 def get_all_notifier_settings():
     settings = set()
-    for k, v in NOTIFIER_CLASSES.items():
-        for setting in v.get_settings():
+    for notifier in NOTIFIER_CLASSES.values():
+        for setting in notifier.get_settings():
             if setting in settings:
-                raise Exception(
-                    "Notifier {0} uses duplicate setting name {1}", v, setting
-                )
+                raise Exception("Notifier {0} uses duplicate setting name {1}", notifier, setting)
             settings.add(setting)
     return settings

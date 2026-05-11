@@ -1,12 +1,11 @@
 import logging
 from functools import wraps
 
-from flask import url_for
-
 from CTFd.models import Solves, db
 from CTFd.plugins.challenges import BaseChallenge
 from CTFd.utils import get_config
 from CTFd.utils.modes import TEAMS_MODE, get_model
+from flask import url_for
 
 from .notifiers import get_configured_notifier
 
@@ -23,11 +22,7 @@ def _send_solve_notification(user, team, challenge):
     user_name = user.name
     user_url = url_for("users.public", user_id=user.id, _external=True)
     team_name = team.name if is_teams_mode else None
-    team_url = (
-        url_for("teams.public", team_id=team.id, _external=True)
-        if is_teams_mode
-        else None
-    )
+    team_url = url_for("teams.public", team_id=team.id, _external=True) if is_teams_mode else None
 
     challenge_url = url_for(
         "challenges.listing",
@@ -40,7 +35,7 @@ def _send_solve_notification(user, team, challenge):
         db.session.query(db.func.count(Solves.id))
         .filter(Solves.challenge_id == challenge.id)
         .join(Model, Solves.account_id == Model.id)
-        .filter(Model.banned == False, Model.hidden == False)
+        .filter(Model.banned == False, Model.hidden == False)  # noqa: E712 — SQLAlchemy filter
         .scalar()
     )
 
@@ -95,9 +90,7 @@ def _event_publish_decorator(event_publish_func):
             notifier = get_configured_notifier()
             if notifier and bool(get_config("notifier_send_notifications")):
                 notification = kwargs["data"]
-                notifier.notify_message(
-                    notification["title"], notification["content"]
-                )
+                notifier.notify_message(notification["title"], notification["content"])
 
     return wrapper
 
@@ -108,9 +101,7 @@ def _apply_challenge_decorators():
         from CTFd.plugins.challenges import CHALLENGE_CLASSES
 
         if "geo" not in CHALLENGE_CLASSES:
-            logger.info(
-                "Geo challenge type not found in CHALLENGE_CLASSES, using base decorator"
-            )
+            logger.info("Geo challenge type not found in CHALLENGE_CLASSES, using base decorator")
             return
 
         geo_challenge_class = CHALLENGE_CLASSES["geo"]
@@ -118,18 +109,14 @@ def _apply_challenge_decorators():
             return
 
         original_solve = geo_challenge_class.solve.__func__
-        geo_challenge_class.solve = classmethod(
-            _geo_chal_solve_decorator(original_solve)
-        )
+        geo_challenge_class.solve = classmethod(_geo_chal_solve_decorator(original_solve))
         logger.info("Geo challenge decorator applied successfully")
     except Exception as e:
         logger.info(f"Error applying challenge decorators: {e}")
 
 
 def register_decorators(app):
-    app.events_manager.publish = _event_publish_decorator(
-        app.events_manager.publish
-    )
+    app.events_manager.publish = _event_publish_decorator(app.events_manager.publish)
 
     @app.before_first_request
     def setup_decorators():

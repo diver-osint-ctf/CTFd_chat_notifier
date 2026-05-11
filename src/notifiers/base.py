@@ -1,4 +1,4 @@
-class BaseNotifier(object):
+class BaseNotifier:
     def get_settings(self):
         return []
 

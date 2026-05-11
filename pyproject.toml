@@ -1,0 +1,43 @@
+[project]
+name = "ctfd-chat-notifier"
+version = "0.1.0"
+description = "CTFd plugin: send chat notifications about solves and admin announcements"
+requires-python = ">=3.11"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.6",
+    # Imported by src/notifiers/discord.py. Available at runtime via CTFd,
+    # but we need it locally for `uv run pytest`.
+    "requests>=2.31",
+]
+
+# Pytest configuration intentionally lives in tests/pytest.ini, not here. The
+# plugin root has its own __init__.py (the CTFd plugin entrypoint), which
+# imports CTFd modules that aren't available during unit tests. If pytest
+# discovers its config in pyproject.toml at the plugin root, rootdir resolves
+# here and pytest tries to load the plugin __init__.py as a Package node.
+# Keeping the pytest config in tests/ makes rootdir = tests/ and avoids it.
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-exclude = [
+    "e2e",
+    "__pycache__",
+    ".serena",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",
+    "W",
+    "F",
+    "I",
+    "B",
+    "UP",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["E501"]
