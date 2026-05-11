@@ -6,7 +6,7 @@ from flask import url_for
 from CTFd.models import Solves, db
 from CTFd.plugins.challenges import BaseChallenge
 from CTFd.utils import get_config
-from CTFd.utils.modes import TEAMS_MODE, get_mode_as_word, get_model
+from CTFd.utils.modes import TEAMS_MODE, get_model
 
 from .notifiers import get_configured_notifier
 
@@ -18,8 +18,7 @@ def _send_solve_notification(user, team, challenge):
     if not (notifier and bool(get_config("notifier_send_solves"))):
         return
 
-    # TODO: "チーム" check is for the Japanese env
-    is_teams_mode = get_mode_as_word() in (TEAMS_MODE, "チーム")
+    is_teams_mode = get_config("user_mode") == TEAMS_MODE
 
     user_name = user.name
     user_url = url_for("users.public", user_id=user.id, _external=True)
