@@ -66,10 +66,7 @@ def register_admin_blueprint(app):
         supported_notifier_settings = {}
         for k, v in NOTIFIER_CLASSES.items():
             supported_notifier_settings[k] = Markup(
-                render_template(
-                    "chat_notifier/admin_notifier_settings/{}.html".format(k),
-                    **context,
-                )
+                render_template(f"chat_notifier/notifier_{k}.html", **context)
             )
         context["supported_notifier_settings"] = supported_notifier_settings
         return render_template("chat_notifier/admin.html", **context)
