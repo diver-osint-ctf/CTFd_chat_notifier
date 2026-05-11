@@ -9,3 +9,13 @@
 		placeholder="https://discord.com/api/webhooks/{webhook.id}/{webhook.token}"
 		{% if notifier_discord_webhook_url is not none %}value="{{ notifier_discord_webhook_url }}"{% endif %}>
 </div>
+<div class="form-group">
+	<label>
+		Admin Webhook URL<br>
+		<small class="form-text text-muted">
+			Additional webhook URL that receives first-blood notifications only (e.g. a private staff channel). Leave empty to disable.
+		</small>
+	</label>
+	<input class="form-control" id="notifier_discord_admin_webhook_url" name="notifier_discord_admin_webhook_url" type="text"
+		placeholder="https://discord.com/api/webhooks/{webhook.id}/{webhook.token}"
+		{% if notifier_discord_admin_webhook_url is not none %}value="{{ notifier_discord_admin_webhook_url }}"{% endif %}>

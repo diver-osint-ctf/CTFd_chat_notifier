@@ -229,27 +229,7 @@ func TestChatNotifier_NoTypeNoWebhook(t *testing.T) {
 // notifier_solve_count.
 func applyConfigWithCount(t *testing.T, sess *testutil.Client, notifierType, webhookURL string, sendSolves, sendNotifications bool, msg, count string) {
 	t.Helper()
-	form := map[string]string{
-		"notifier_type":               notifierType,
-		"notifier_solve_msg":          msg,
-		"notifier_solve_count":        count,
-		"notifier_discord_webhook_url": webhookURL,
-	}
-	if sendSolves {
-		form["notifier_send_solves"] = "on"
-	}
-	if sendNotifications {
-		form["notifier_send_notifications"] = "on"
-	}
-	values := mapToValues(form)
-	resp, err := sess.PostFormWithNonce(adminPath, values)
-	if err != nil {
-		t.Fatalf("apply chat_notifier config (with count): %v", err)
-	}
-	resp.Body.Close()
-	if resp.StatusCode >= 400 {
-		t.Fatalf("apply chat_notifier config (with count): HTTP %s", resp.Status)
-	}
+	applyConfigFull(t, sess, notifierType, webhookURL, "", sendSolves, sendNotifications, msg, count)
 }
 
 func payloadDescription(body map[string]any) string {

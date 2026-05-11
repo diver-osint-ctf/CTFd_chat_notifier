@@ -33,6 +33,15 @@ const (
 // authenticated client and a CSRF nonce harvested from the rendered form.
 func applyConfig(t *testing.T, sess *testutil.Client, notifierType, webhookURL string, sendSolves, sendNotifications bool, msg string) {
 	t.Helper()
+	applyConfigFull(t, sess, notifierType, webhookURL, "", sendSolves, sendNotifications, msg, "")
+}
+
+// applyConfigFull is the underlying form-post helper. The chat_notifier admin
+// view writes every notifier setting from request.form[...] unconditionally,
+// so all currently-registered settings (including the admin webhook URL) must
+// be present in every POST — otherwise Flask returns 400.
+func applyConfigFull(t *testing.T, sess *testutil.Client, notifierType, webhookURL, adminWebhookURL string, sendSolves, sendNotifications bool, msg, count string) {
+	t.Helper()
 	form := url.Values{}
 	form.Set("notifier_type", notifierType)
 	if sendSolves {
@@ -42,8 +51,9 @@ func applyConfig(t *testing.T, sess *testutil.Client, notifierType, webhookURL s
 		form.Set("notifier_send_notifications", "on")
 	}
 	form.Set("notifier_solve_msg", msg)
-	form.Set("notifier_solve_count", "")
+	form.Set("notifier_solve_count", count)
 	form.Set("notifier_discord_webhook_url", webhookURL)
+	form.Set("notifier_discord_admin_webhook_url", adminWebhookURL)
 	resp, err := sess.PostFormWithNonce(adminPath, form)
 	if err != nil {
 		t.Fatalf("apply chat_notifier config: %v", err)

@@ -8,10 +8,16 @@ from .base import BaseNotifier
 
 class DiscordNotifier(BaseNotifier):
     def get_settings(self):
-        return ["notifier_discord_webhook_url"]
+        return [
+            "notifier_discord_webhook_url",
+            "notifier_discord_admin_webhook_url",
+        ]
 
     def get_webhook_url(self):
         return get_config("notifier_discord_webhook_url")
+
+    def get_admin_webhook_url(self):
+        return get_config("notifier_discord_admin_webhook_url")
 
     def is_configured(self):
         return bool(self.get_webhook_url())
@@ -42,18 +48,19 @@ class DiscordNotifier(BaseNotifier):
         is_first_blood = solve_num == 1
         if is_first_blood:
             markdown_msg = ":drop_of_blood: " + markdown_msg
-            requests.post(
-                self.get_webhook_url(),
-                json={
-                    "embeds": [
-                        {
-                            "title": "First Blood! :first_place:",
-                            "description": markdown_msg,
-                            "color": 15158332,
-                        }
-                    ]
-                },
-            )
+            payload = {
+                "embeds": [
+                    {
+                        "title": "First Blood! :first_place:",
+                        "description": markdown_msg,
+                        "color": 15158332,
+                    }
+                ]
+            }
+            requests.post(self.get_webhook_url(), json=payload)
+            admin_webhook_url = self.get_admin_webhook_url()
+            if admin_webhook_url:
+                requests.post(admin_webhook_url, json=payload)
         else:
             requests.post(self.get_webhook_url(), json={"content": markdown_msg})
 
