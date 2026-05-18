@@ -10,6 +10,11 @@ import (
 // TestChatNotifier_AdminPageRendersAndSavesSettings — drive the admin page
 // in a real browser, confirm the form is present, and that values that we
 // already pushed via the API still render in the form inputs.
+//
+// LoginAsAdmin injects the admin session cookie directly so we don't race
+// against the /login form's redirect (the previous version of this test
+// occasionally landed on /login?next=… because `click submit` returned
+// before CTFd finished the post-login redirect).
 func TestChatNotifier_AdminPageRendersAndSavesSettings(t *testing.T) {
 	sess := testutil.AdminSessionClient(t)
 	t.Cleanup(func() { applyConfig(t, sess, "", "", false, false, "") })
@@ -18,11 +23,7 @@ func TestChatNotifier_AdminPageRendersAndSavesSettings(t *testing.T) {
 
 	base := testutil.CTFdURL(t)
 	b := testutil.NewBrowser(t)
-	b.Open(base + "/login")
-	b.Wait("input[name=name]")
-	b.Type("input[name=name]", testutil.AdminName(t))
-	b.Type("input[name=password]", testutil.AdminPassword(t))
-	b.Click("input[type=submit]")
+	b.LoginAsAdmin()
 
 	b.Open(base + "/admin/chat_notifier")
 	b.Wait("body")
